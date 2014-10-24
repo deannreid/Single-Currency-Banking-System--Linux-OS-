@@ -272,7 +272,7 @@ _playerObj setVariable["humanity_CHK",_humanity];
 //_playerObj setVariable["state",_state,true];
 _playerObj setVariable["lastPos",getPosATL _playerObj];
 _playerObj setVariable ["cashMoney",_cashMoney,true];
-_playerObj setVariable ["cashMoney_CHK",_cashMoney];
+_playerObj setVariable ["bankMoney",_bankMoney,true];
 
 dayzPlayerLogin2 = [_worldspace,_state];
 
