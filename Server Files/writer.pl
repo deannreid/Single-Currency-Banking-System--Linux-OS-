@@ -1154,16 +1154,28 @@ sub h_cash_retrieve {
 }
 
 #104 - gets all adminuids + their adminlevel from the admin_data table. (can be used to restrict access to admin tools aswell as infiSTAR AH)
-sub h_admin_load {
-
-}
+#sub h_admin_load {
+## Will Do this Later
+#}
 
 #298 - fetching player bank data, used while player joins server
 sub h_player_bank_fetch {
-
+##Not Finished,  TODO Grab data from dll if possible if not then guess like a mofo
+    my $sql = 'SELECT PlayerUID, PlayerName, BankSaldo, LastUpdated `order`, PlayerUID, afile FROM banking_data';
+    my $sth = $dbh->prepare ($sql);
+    my $res = $sth->execute ();
+    return unless $res;
 }
 
 #299 - updates player bank data, used when banking.
 sub h_player_bank_update {
+##Not Finished,  TODO Grab data from dll if possible if not then guess like a mofo
 
+  my $sql = 'UPDATE banking_data SET ';
+    $sql   .= $str;
+    $sql   .= ' WHERE PlayerUID=?';
+    
+    my $sth = $dbh->prepare ($sql);
+    my $res = $sth->execute ($PlayerUID);
+    return $res;
 }
