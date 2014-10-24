@@ -37,10 +37,14 @@ my %FN_IPC  = (
     33  => \&h_object_split_inventory,
     39  => \&h_object_uid_split_inventory,
     101 => \&h_load_player,
+	102 => \&h_cash_retrieve,  
     103 => \&h_log_login,
+	104 => \&h_admin_load,
     201 => \&h_player_update,
     202 => \&h_player_death,
     204 => \&h_player_disconnect,
+	298 => \&h_player_bank_fetch,
+	299 => \&h_player_bank_update,
     303 => \&h_object_update_inventory,
     304 => \&h_object_delete,
     305 => \&h_vehicle_moved,
@@ -51,14 +55,6 @@ my %FN_IPC  = (
     396 => \&h_object_reset_damage,
     397 => \&h_object_uid_reset_damage,
     398 => \&h_trade_object,
-	
-	#Single Currency
-    101 => \&h_player_update_bank,
-	102 => \&h_cash_retrieve,  
-	104 => \&h_admin_load,
-	201 => \&h_cash_update_handle,
-	298 => \&h_player_bank_fetch,
-	299 => \&h_player_bank_update,
 );
 
 my $dbh   = connect_to_db();
@@ -1151,20 +1147,6 @@ sub h_load_trader_details {
     undef %tids;
 }
 
-#
-# Soul Banking Updates
-#   101 => \&h_player_update_bank,
-#	102 => \&h_cash_retrieve,  
-#	104 => \&h_admin_load,
-#	201 => \&h_cash_update_handle,
-#	298 => \&h_player_bank_fetch,
-#	299 => \&h_player_bank_update,
-#
-
-#101 - checks if player exists in banking_data table & if not then updates playername if change detected
-sub h_player_update_bank {
-
-}
 
 #102 - adds selection of cashMoney field during retrieving survivor data on login.
 sub h_cash_retrieve {
@@ -1173,11 +1155,6 @@ sub h_cash_retrieve {
 
 #104 - gets all adminuids + their adminlevel from the admin_data table. (can be used to restrict access to admin tools aswell as infiSTAR AH)
 sub h_admin_load {
-
-}
-
-#201 - adds element to handle players cashmoney during updates to database.
-sub h_cash_update_handle {
 
 }
 
