@@ -1,0 +1,13 @@
+//new
+5 "SeaGull"
+1 "" !"WeaponHolder" !"box"
+5 "box" !="DebugBoxPlayer_DZ" !"MedBox" !="AmmoBoxSmall_556" !="AmmoBoxSmall_762" !="ItemMatchbox" !="ItemToolbox" !="CardBoardBox" !="FoodBox1" !="FoodBox2" !="FoodBox3" !="LockboxStorageLocked" !="LockboxStorage" !="WeaponHolder_ItemLockbox" !="PVDZE_SkinPreviewCounter" !="USVehicleBox_EP1" !="ParachuteMediumEast" !="SmokeShellBlue"
+5 "BasicWeapons"
+5 "SpecialWeapons"
+5 "FunctionsManager"
+5 "Logic"
+5 "sideLogic"
+5 "M_Vikhr_AT"
+5 "M_Hellfire_AT"
+5 "snowman"
+5 "FAL_pond_"
