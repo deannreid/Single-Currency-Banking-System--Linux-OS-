@@ -272,7 +272,7 @@ _playerObj setVariable["humanity_CHK",_humanity];
 //_playerObj setVariable["state",_state,true];
 _playerObj setVariable["lastPos",getPosATL _playerObj];
 _playerObj setVariable ["cashMoney",_cashMoney,true];
-_playerObj setVariable ["cashMoney_CHK",_cashMoney];
+_playerObj setVariable ["bankMoney",_bankMoney,true];
 
 dayzPlayerLogin2 = [_worldspace,_state];
 
@@ -297,7 +297,7 @@ _key2 = format["CHILD:298:%1:",_playerID];
    diag_log (_key2);
 //_primary2 = _key2 call server_hiveReadWrite;
 //if(count _primary2 > 0) then {
-if(cound _key2 > 0) then {
+if(count _key2 > 0) then {
 //	if((_primary2 select 0) != "ERROR") then {
 	if((_key2 select 0) != "ERROR") then {
 //		_bankMoney = _primary2 select 1;
