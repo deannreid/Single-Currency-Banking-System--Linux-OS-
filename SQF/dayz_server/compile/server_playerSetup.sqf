@@ -34,6 +34,8 @@ _worldspace = 	[];
 
 _state = 		[];
 
+_cashMoney = 0;
+_bankMoney = 0;
 //Do Connection Attempt
 _doLoop = 0;
 while {_doLoop < 5} do {
@@ -85,6 +87,7 @@ _worldspace = 	_primary select 4;
 _humanity =		_primary select 5;
 _characterID =	_primary select 6;
 _lastinstance =	dayZ_instance;
+_cashMoney = 	_primary select 7;
 
 diag_log format["_characterID: %1", _characterID];
 
@@ -169,6 +172,9 @@ if (count _stats > 0) then {
 	_playerObj setVariable["humanKills",(_stats select 2),true];
 	_playerObj setVariable["banditKills",(_stats select 3),true];
 	_playerObj addScore (_stats select 1);
+	_playerObj setVariable ["moneychanged",0,true];	
+	_playerObj setVariable ["bankchanged",0,true];	
+	_playerObj setVariable["AsReMixhud", true,true];
 	
 	//Save Score
 	_score = score _playerObj;
@@ -193,6 +199,8 @@ if (count _stats > 0) then {
 	_playerObj setVariable["humanKills",0,true];
 	_playerObj setVariable["banditKills",0,true];
 	_playerObj setVariable["headShots",0,true];
+	_playerObj setVariable ["friendlies",[],true];
+	_playerObj setVariable["AsReMixhud", true,true];
 	
 	//record for Server JIP checks
 	_playerObj setVariable["zombieKills_CHK",0];
@@ -263,6 +271,8 @@ _playerObj setVariable["humanity_CHK",_humanity];
 //_playerObj setVariable["worldspace",_worldspace,true];
 //_playerObj setVariable["state",_state,true];
 _playerObj setVariable["lastPos",getPosATL _playerObj];
+_playerObj setVariable ["cashMoney",_cashMoney,true];
+_playerObj setVariable ["cashMoney_CHK",_cashMoney];
 
 dayzPlayerLogin2 = [_worldspace,_state];
 
@@ -282,6 +292,26 @@ if (!isNull _playerObj) then {
 //record time started
 _playerObj setVariable ["lastTime",time];
 //_playerObj setVariable ["model_CHK",typeOf _playerObj];
+
+_key2 = format["CHILD:298:%1:",_playerID];
+   diag_log (_key2);
+//_primary2 = _key2 call server_hiveReadWrite;
+//if(count _primary2 > 0) then {
+if(cound _key2 > 0) then {
+//	if((_primary2 select 0) != "ERROR") then {
+	if((_key2 select 0) != "ERROR") then {
+//		_bankMoney = _primary2 select 1;
+		_bankMoney = _key2 select 1;
+		_playerObj setVariable["bankMoney",_bankMoney,true];
+		_playerObj setVariable["bankMoney_CHK",_bankMoney];
+	} else {
+		_playerObj setVariable["bankMoney",0,true];
+		_playerObj setVariable["bankMoney_CHK",0];
+	};
+} else {
+	_playerObj setVariable["bankMoney",0,true];
+	_playerObj setVariable["bankMoney_CHK",0];
+};
 
 //diag_log ("LOGIN PUBLISHING: " + str(_playerObj) + " Type: " + (typeOf _playerObj));
 
