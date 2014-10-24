@@ -295,12 +295,10 @@ _playerObj setVariable ["lastTime",time];
 
 _key2 = format["CHILD:298:%1:",_playerID];
    diag_log (_key2);
-//_primary2 = _key2 call server_hiveReadWrite;
-//if(count _primary2 > 0) then {
-if(count _key2 > 0) then {
-//	if((_primary2 select 0) != "ERROR") then {
-	if((_key2 select 0) != "ERROR") then {
-//		_bankMoney = _primary2 select 1;
+_primary2 = _key2;
+if(count _primary2 > 0) then {
+	if((_primary2 select 0) != "ERROR") then {
+		_bankMoney = _primary2 select 1;
 		_bankMoney = _key2 select 1;
 		_playerObj setVariable["bankMoney",_bankMoney,true];
 		_playerObj setVariable["bankMoney_CHK",_bankMoney];
