@@ -33,7 +33,7 @@ while {true} do
 
 	if(Humanity >= 5000) then { Humanity_Icon = "<img size='0.9' image='Scripts\Player_Hud\icons\HeroHumanity.paa'/>"; };
 	if((Humanity >= 200) && (Humanity <= 4999)) then { Humanity_Icon = "<img size='0.9' image='Scripts\Player_Hud\icons\CivHumanity.paa'/>"; };
-	if(Humanity <= 199) then { Humanity_Icon = "<img size='0.9' image='Scripts\Player_Hud\icons\BanditHumanity.paa'/>"; };
+	if(Humanity <= -5000) then { Humanity_Icon = "<img size='0.9' image='Scripts\Player_Hud\icons\BanditHumanity.paa'/>"; };
 
 	_vitals ctrlSetStructuredText parseText format 
 ["
