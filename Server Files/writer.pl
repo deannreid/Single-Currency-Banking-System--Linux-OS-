@@ -11,15 +11,15 @@ use strict;
 
 use constant {
     INSTANCE  => 11,           # Chernarus instance
-    DB_NAME   => 'epoch',      # Set database name
-    DB_LOGIN  => 'dayz',       # Set database login
-    DB_PASSWD => 'dayz',       # Set database password
+    DB_NAME   => 'dayz_epoch',      # Set database name
+    DB_LOGIN  => 'USER',       # Set database login
+    DB_PASSWD => 'PASSWORD',       # Set database password
     DB_HOST   => 'localhost',  # Set database host
     DB_PORT   => 3306,         # Set database port (default 3306)
 
     CACHE_DIR => $ENV{'PWD'}.'/cache/',
     # Start inventory of player
-    INVENTORY => '[["ItemFlashlight","ItemMap","ItemGPS","MeleeCrowbar"],["ItemBandage","ItemPainkiller","ItemSodaPepsi","ItemSodaCoke","FoodbeefCooked"]]',
+    INVENTORY => '[["8Rnd_9x18_Makarov","8Rnd_9x18_Makarov","ItemBandage","ItemPainkiller"],["ItemMap","ItemCompass","ItemRadio","Makarov","ItemSodaCoke","FoodbeefCooked"]]',
     BACKPACK  => '["DZ_Patrol_Pack_EP1",[],[]]',
     MODEL     => '"Survivor2_DZ"'
 };
@@ -37,14 +37,13 @@ my %FN_IPC  = (
     33  => \&h_object_split_inventory,
     39  => \&h_object_uid_split_inventory,
     101 => \&h_load_player,
-	102 => \&h_cash_retrieve,  
+	102 => \&h_load_character,
     103 => \&h_log_login,
-	104 => \&h_admin_load,
     201 => \&h_player_update,
     202 => \&h_player_death,
     204 => \&h_player_disconnect,
-	298 => \&h_player_bank_fetch,
-	299 => \&h_player_bank_update,
+	298 => \&h_load_bank,
+	299 => \&h_bank_update,
     303 => \&h_object_update_inventory,
     304 => \&h_object_delete,
     305 => \&h_vehicle_moved,
@@ -67,6 +66,7 @@ init_objects_id        ();
 init_objects           ();
 init_default_player    ();
 init_default_character ();
+init_default_bank      ();
 update_players_cache   ();
 
 open (LOG, ">>dump.log") or die $!;
@@ -127,14 +127,21 @@ sub init_objects {
 sub init_default_player {
     my $file = CACHE_DIR.'players/default.sqf';
     open  (OUT, ">$file") or die "Can't open '$file'";
-    print OUT '["PASS",false,"1",[],'.INVENTORY.','.BACKPACK.',[0,0,0],'.MODEL.',0.96]';
+    print OUT '["PASS",false,"1",[],'.INVENTORY.','.BACKPACK.',[0,0,0],'.MODEL.',0.96,0]';
     close (OUT);
 }
 
 sub init_default_character {
     my $file = CACHE_DIR.'players/default-char.sqf';
     open  (OUT, ">$file") or die "Can't open '$file'";
-    print OUT '["PASS",[],[0,0,0,0],[],[],2500,"1"]';
+    print OUT '["PASS",[],[0,0,0,0],[],[],2500,"1",0]';
+    close (OUT);
+}
+
+sub init_default_bank {
+    my $file = CACHE_DIR.'players/default-bank.sqf';
+    open  (OUT, ">$file") or die "Can't open '$file'";
+    print OUT '["PASS",0]';
     close (OUT);
 }
 
@@ -160,6 +167,7 @@ sub update_players_cache {
     
     for my $playerId (@uids) {
         update_player_cache ($playerId);
+		update_bank_cache ($playerId);
     }
 }
 
@@ -186,7 +194,7 @@ sub update_player_cache {
                TIMESTAMPDIFF(MINUTE, Datestamp, LastLogin) as SurvivalTime,
                TIMESTAMPDIFF(MINUTE, LastAte, NOW()) as MinsLastAte,
                TIMESTAMPDIFF(MINUTE, LastDrank, NOW()) as MinsLastDrank,
-               Model, Humanity, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState, Medical 
+               Model, Humanity, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState, Medical, CashMoney 
                FROM Character_DATA
                WHERE PlayerUID=? AND Alive = 1 AND InstanceID=? ORDER BY CharacterID DESC LIMIT 1";
     my $sth = $dbh->prepare ($sql);
@@ -194,7 +202,7 @@ sub update_player_cache {
     #return unless $res;
     
     my ($characterId, $worldSpace, $inventory, $backpack, $survivalTime, $minsLastAte, $minsLastDrank, $model,
-        $humanity, $killsZ, $headshotsZ, $killsH, $killsB, $currentState, $medical) = $sth->fetchrow_array;
+        $humanity, $killsZ, $headshotsZ, $killsH, $killsB, $currentState, $medical, $cashMoney) = $sth->fetchrow_array;
     $sth->finish;
     return unless (defined $characterId);
     
@@ -215,10 +223,35 @@ sub update_player_cache {
     
     $file = $PLAYERS_DIR.'/'.lc($playerId).'-char.sqf';
     open  (OUT, ">$file") or print STDERR $!;
-    print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'"]';
+    print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'",'.$cashMoney.']';
     close (OUT);
-    
+	
     return $characterId;
+}
+
+sub update_bank_cache {
+    my $playerId = shift;
+    return unless $playerId;
+
+	my $sql = "SELECT BankSaldo
+			   FROM Banking_DATA
+		       WHERE PlayerUID=?";
+    my $sth = $dbh->prepare ($sql);
+    my $res = $sth->execute ($playerId);
+    
+    my ($bankSaldo) = $sth->fetchrow_array;
+    $sth->finish;
+	return unless (defined $bankSaldo);
+
+	my $PLAYERS_DIR = CACHE_DIR.'players/'.$myPlayerCounter;
+    mkdir ($PLAYERS_DIR) unless (-d $PLAYERS_DIR);
+	
+    my $file = $PLAYERS_DIR.'/'.lc($playerId).'-bank.sqf';
+    open  (OUT, ">$file") or print STDERR $!;
+    print OUT '["PASS",'.$bankSaldo.']';
+    close (OUT);
+	
+	return $bankSaldo;
 }
 
 sub init_login_uid {
@@ -244,8 +277,11 @@ sub init_login_uid {
     #my $PLAYERS_DIR = CACHE_DIR.'players/'.$myPlayerCounter;
     #my $file        = $PLAYERS_DIR.'/'.$uid.'.sqf';
     #return if (-e $file);
-    
+
     h_load_player ([101, $uid, INSTANCE, $name]);
+	print STDERR "EXECUTED h_load_player($uid): with name: $name\n";
+	h_load_bank ([298, $uid, INSTANCE, $name]);
+    print STDERR "EXECUTED h_load_bank($uid): with name: $name\n";
 }
 
 # 11
@@ -456,10 +492,12 @@ sub h_load_player {
     my $newPlayer = 0;
     if (defined $name) {
         if ($playerName && $playerName ne $name) {
+		
             $sql = 'UPDATE Player_DATA SET PlayerName=? WHERE PlayerUID=?';
             $sth = $dbh->prepare ($sql);
             $res = $sth->execute ($playerName, $playerId);
-            print STDERR "Changed name of player $playerId from '$name' to '$playerName'\n";
+			
+            print STDERR "Changed name of player $playerId from '$name' to '$playerName' in table Player_DATA\n";
         }
     } else {
         $newPlayer  = 1;
@@ -468,25 +506,27 @@ sub h_load_player {
         $sql = 'INSERT INTO Player_DATA(PlayerUID, PlayerName) VALUES (?, ?)';
         $sth = $dbh->prepare ($sql);
         $res = $sth->execute ($playerId, $playerName);
-        print STDERR "Created a new player $playerId named '$playerName'\n";
+		
+        print STDERR "Created a new player $playerId named '$playerName' in table Player_DATA\n";
     }
     
     $sql = "SELECT CharacterID, Worldspace, Inventory, Backpack, 
             TIMESTAMPDIFF(MINUTE, Datestamp, LastLogin) as SurvivalTime,
             TIMESTAMPDIFF(MINUTE, LastAte, NOW()) as MinsLastAte, 
             TIMESTAMPDIFF(MINUTE, LastDrank, NOW()) as MinsLastDrank,
-            Model, Medical, Humanity, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState  
+            Model, Medical, Humanity, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState, CashMoney  
             FROM  Character_DATA 
             WHERE PlayerUID=? AND Alive = 1 AND InstanceID=? ORDER BY CharacterID DESC LIMIT 1";
     $sth = $dbh->prepare ($sql);
     $res = $sth->execute ($playerId, $serverId);
     
     my ($characterId, $worldSpace, $inventory, $backpack, $survivalTime, $minsLastAte, $minsLastDrank, 
-        $model, $medical, $humanity, $killsZ, $headshotsZ, $killsH, $killsB, $currentState) = $sth->fetchrow_array;
+        $model, $medical, $humanity, $killsZ, $headshotsZ, $killsH, $killsB, $currentState, $cashMoney) = $sth->fetchrow_array;
     $sth->finish;
     
     $currentState = '[]'      unless (defined $currentState);
     $humanity     = 2500      unless (defined $humanity);
+	$cashMoney    = 0         unless (defined $cashMoney);
     $medical      = '[]'      unless (defined $medical);
     $worldSpace   = '[]'      unless (defined $worldSpace);
     $inventory    = INVENTORY unless (defined $inventory);  # '[]'
@@ -508,7 +548,7 @@ sub h_load_player {
                                                                                 defined $killsH && defined $killsB);        
         my $file = $PLAYERS_DIR.'/'.lc($playerId).'-char.sqf';
         open  (OUT, ">$file");
-        print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'"]';
+        print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'",'.$cashMoney.']';
         close (OUT); 
     } else {
         $newChar = 1;
@@ -527,14 +567,15 @@ sub h_load_player {
             $generation = 1;
         }
         
-        $humanity = 2500    unless (defined $humanity);
-        $model    = $cmodel if (defined $cmodel); 
+        $humanity     = 2500      unless (defined $humanity);
+		$cashMoney    = 0         unless (defined $cashMoney);
+        $model        = $cmodel   if (defined $cmodel); 
         
         $sql = "INSERT INTO Character_DATA(PlayerUID, InstanceID, Worldspace, Inventory, Backpack, Medical,
-                                           Generation, Datestamp, LastLogin, LastAte, LastDrank, Humanity) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)";
+                                           Generation, Datestamp, LastLogin, LastAte, LastDrank, Humanity, CashMoney) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?)";
         $sth = $dbh->prepare ($sql);
-        $res = $sth->execute ($playerId, $serverId, $worldSpace, $inventory, $backpack, $medical, $generation, $humanity);
+        $res = $sth->execute ($playerId, $serverId, $worldSpace, $inventory, $backpack, $medical, $generation, $humanity, $cashMoney);
         
         $sql = 'SELECT CharacterID FROM Character_DATA WHERE PlayerUID=? AND Alive = 1 AND InstanceID=? ORDER BY CharacterID DESC LIMIT 1';
         $sth = $dbh->prepare ($sql);
@@ -549,7 +590,7 @@ sub h_load_player {
             print STDERR "Created a new character $characterId for player '$playerName' ($playerId)\n";
             my $file = $PLAYERS_DIR.'/'.lc($playerId).'-char.sqf';
             open  (OUT, ">$file");
-            print OUT '["PASS",'.$medical.',[0,0,0,0],[],'.$worldSpace.','.$humanity.',"'.$characterId.'"]';
+            print OUT '["PASS",'.$medical.',[0,0,0,0],[],'.$worldSpace.','.$humanity.',"'.$characterId.'",'.$cashMoney.']';
             close (OUT);
         } else {
             print STDERR "Can't found new character for player '$playerName' ($playerId)\n";
@@ -558,10 +599,10 @@ sub h_load_player {
     
     my $file = $PLAYERS_DIR.'/'.lc($playerId).'.sqf';
     open  (OUT, ">$file");
-    print OUT '["PASS",false,"'.$characterId.'",'.$worldSpace.','.$inventory.','.$backpack.','.$survival.','.$model.',0.96]';
+    print OUT '["PASS",false,"'.$characterId.'",'.$worldSpace.','.$inventory.','.$backpack.','.$survival.','.$model.',0.96,'.$cashMoney.']';
     close (OUT);
     
-    print STDERR "Save player: $file\n";
+    print STDERR "CHILD:101 Save player: $file\n";
     return $res;
 }
 
@@ -591,12 +632,12 @@ sub h_load_character {
         return;
     }
     
-    my $sql = "SELECT Worldspace, Medical, Generation, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState, Humanity, PlayerUID 
+    my $sql = "SELECT Worldspace, Medical, Generation, KillsZ, HeadshotsZ, KillsH, KillsB, CurrentState, Humanity, PlayerUID, CashMoney
                FROM Character_DATA WHERE CharacterID=?";
     my $sth = $dbh->prepare ($sql);
     my $res = $sth->execute ($characterId);
     
-    my ($worldSpace, $medical, $generation, $killsZ, $headshotsZ, $killsH, $killsB, $currentState, $humanity, $playerUID) = $sth->fetchrow_array;
+    my ($worldSpace, $medical, $generation, $killsZ, $headshotsZ, $killsH, $killsB, $currentState, $humanity, $playerUID, $cashMoney) = $sth->fetchrow_array;
     $sth->finish;
     return unless (defined $worldSpace);
     
@@ -607,6 +648,7 @@ sub h_load_character {
     $generation   ||= 1;
     $currentState ||= '[]';
     $humanity       = 2500 unless (defined $humanity);
+	$cashMoney      = 0	unless (defined $cashMoney);
     
     my $stats = '[0,0,0,0]';
     $stats    = '['.$killsZ.','.$headshotsZ.','.$killsH.','.$killsB.']' if (defined $killsZ && defined $headshotsZ && 
@@ -614,10 +656,10 @@ sub h_load_character {
     
     my $file = CACHE_DIR.'players/'.$myPlayerCounter.'/'.lc($playerId).'-char.sqf';
     open  (OUT, ">$file");
-    print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'"]';
+    print OUT '["PASS",'.$medical.','.$stats.','.$currentState.','.$worldSpace.','.$humanity.',"'.$characterId.'",'.$cashMoney.']';
     close (OUT);
     
-    print STDERR "Save character: $file\n";
+    print STDERR "CHILD:102 Save character: $file\n";
     return $res;
 }
 
@@ -645,7 +687,7 @@ sub h_player_update {
     return unless ($p && ref($p) eq 'ARRAY');
     my ($cmd, $characterId, $worldSpace, $inventory, $backpack, $medical, $justAte, $justDrank, 
         $killsZ, $headshotsZ, $distanceWalked, $durationLived, $currentState, $killsH, $killsB, $model,
-        $humanity) = @$p;
+        $humanity, $cashMoney) = @$p;
     unless ($characterId) {
         print STDERR "Error h_player_update(): characterId undefined!\n";
         return;
@@ -724,7 +766,15 @@ sub h_player_update {
             $str .= 'Humanity=Humanity+'.int($humanity).',';
         }
     }
-     
+	
+	if ($cashMoney) {    
+        if ($cashMoney < 0) {
+            $str .= 'CashMoney=CashMoney-'.int(-1*$cashMoney).',';
+        } else {
+            $str .= 'CashMoney=CashMoney+'.int($cashMoney).',';
+        }
+    }
+	
     return unless $str;
     
     $str .= 'Duration=Duration+'.int($durationLived || 0);
@@ -759,6 +809,7 @@ sub h_player_death {
     my $playerId = get_playerId_by_characterId ($characterId);
     if ($playerId) {    
         h_load_player ([101, $playerId, INSTANCE]);
+		h_load_bank ([298, $playerId, INSTANCE]);
     } else {
         print STDERR "Error h_player_death('$characterId'): playerId not found!\n";
     }
@@ -772,6 +823,94 @@ sub h_player_disconnect {
     $playerId =~ s/[A-Z"]//g;
     
     update_player_cache ($playerId);
+	update_bank_cache ($playerId);
+}
+
+# 298
+sub h_load_bank {
+    my $p = shift;
+    return unless ($p && ref($p) eq 'ARRAY');
+    my ($cmd, $playerId, $serverId, $playerName) = @$p;
+    unless ($playerId) {
+        print STDERR "Error h_load_bank(): playerId undefined!\n";
+        return;
+    }
+    $playerId =~ s/['"]//g;
+    $serverId ||= INSTANCE;
+    
+    my $PLAYERS_DIR = CACHE_DIR.'players/'.$myPlayerCounter;
+    mkdir ($PLAYERS_DIR) unless (-d $PLAYERS_DIR);
+    
+    my $sql = 'SELECT PlayerName FROM Banking_DATA WHERE PlayerUID=?';
+    my $sth = $dbh->prepare ($sql);
+    my $res = $sth->execute ($playerId);
+    
+    my ($name) = $sth->fetchrow_array;
+    $sth->finish;
+    
+    my $newPlayer = 0;
+    if (defined $name) {
+        if ($playerName && $playerName ne $name) {
+			$sql = 'UPDATE Banking_DATA SET PlayerName=? WHERE PlayerUID=?';
+            $sth = $dbh->prepare ($sql);
+            $res = $sth->execute ($playerName, $playerId);
+            print STDERR "Changed name of player $playerId from '$name' to '$playerName' in table Banking_DATA\n";
+        }
+    } else {
+        $newPlayer  = 1;
+        $playerName = 'Unknown' unless $playerName;
+		$sql = 'INSERT INTO Banking_DATA(PlayerUID, PlayerName, LastUpdated) VALUES (?, ?, CURRENT_TIMESTAMP)';
+        $sth = $dbh->prepare ($sql);
+        $res = $sth->execute ($playerId, $playerName);
+        print STDERR "Created a new player $playerId named '$playerName' in table Banking_DATA\n";
+    }
+	
+	$sql = "SELECT BankSaldo
+            FROM  Banking_DATA 
+            WHERE PlayerUID=?";
+    $sth = $dbh->prepare ($sql);
+    $res = $sth->execute ($playerId);
+    
+    my ($bankSaldo) = $sth->fetchrow_array;
+    $sth->finish;
+
+	$bankSaldo    = 0         unless (defined $bankSaldo);
+    
+    my $file = $PLAYERS_DIR.'/'.lc($playerId).'-bank.sqf';
+    open  (OUT, ">$file");
+    print OUT '["PASS",'.$bankSaldo.']';
+    close (OUT);
+    
+    print STDERR "CHILD:298 Save bank: $file with BankSaldo: $bankSaldo\n";
+    return $res;
+}
+
+# 299
+sub h_bank_update {
+    my $p = shift;
+    return unless ($p && ref($p) eq 'ARRAY');
+    my ($cmd, $playerId, $bankSaldo) = @$p;
+    unless ($playerId) {
+        print STDERR "Error h_player_bank_save(): playerId undefined!\n";
+        return;
+    }
+    $playerId    =~ s/['"]//g;
+	
+    my $str = '';
+	
+	$str .= 'BankSaldo='.int($bankSaldo).',';
+	
+    return unless $str;
+    
+    $str .= 'LastUpdated=CURRENT_TIMESTAMP';
+    
+    my $sql = 'UPDATE Banking_DATA SET ';
+    $sql   .= $str;
+    $sql   .= ' WHERE PlayerUID=?';
+    
+    my $sth = $dbh->prepare ($sql);
+    my $res = $sth->execute ($playerId);
+    return $res;
 }
 
 # 302
@@ -1145,37 +1284,4 @@ sub h_load_trader_details {
     }
     
     undef %tids;
-}
-
-
-#102 - adds selection of cashMoney field during retrieving survivor data on login.
-sub h_cash_retrieve {
-
-}
-
-#104 - gets all adminuids + their adminlevel from the admin_data table. (can be used to restrict access to admin tools aswell as infiSTAR AH)
-#sub h_admin_load {
-## Will Do this Later
-#}
-
-#298 - fetching player bank data, used while player joins server
-sub h_player_bank_fetch {
-##Not Finished,  TODO Grab data from dll if possible if not then guess like a mofo
-    my $sql = 'SELECT PlayerUID, PlayerName, BankSaldo, LastUpdated `order`, PlayerUID, afile FROM banking_data';
-    my $sth = $dbh->prepare ($sql);
-    my $res = $sth->execute ();
-    return unless $res;
-}
-
-#299 - updates player bank data, used when banking.
-sub h_player_bank_update {
-##Not Finished,  TODO Grab data from dll if possible if not then guess like a mofo
-
-  my $sql = 'UPDATE banking_data SET ';
-    $sql   .= $str;
-    $sql   .= ' WHERE PlayerUID=?';
-    
-    my $sth = $dbh->prepare ($sql);
-    my $res = $sth->execute ($PlayerUID);
-    return $res;
 }

@@ -116,6 +116,7 @@ if (_characterID != "0") then {
 		_killsH = 		["humanKills",_character] call server_getDiff;
 		_headShots = 	["headShots",_character] call server_getDiff;
 		_humanity = 	["humanity",_character] call server_getDiff2;
+		_cashMoney = 	["cashMoney",_character] call server_getDiff2;
 		//_humanity = 	_character getVariable ["humanity",0];
 		_character addScore _kills;		
 		/*
@@ -187,11 +188,11 @@ if (_characterID != "0") then {
 			if (alive _character) then {
 			    //Wait for HIVE to be free
 			    //Send request
-			    _key = format["CHILD:201:%1:%2:%3:%4:%5:%6:%7:%8:%9:%10:%11:%12:%13:%14:%15:%16:",_characterID,_playerPos,_playerGear,_playerBackp,_medical,false,false,_kills,_headShots,_distanceFoot,_timeSince,_currentState,_killsH,_killsB,_currentModel,_humanity];
+			    _key = format["CHILD:201:%1:%2:%3:%4:%5:%6:%7:%8:%9:%10:%11:%12:%13:%14:%15:%16:%17:",_characterID,_playerPos,_playerGear,_playerBackp,_medical,false,false,_kills,_headShots,_distanceFoot,_timeSince,_currentState,_killsH,_killsB,_currentModel,_humanity,_cashMoney];
 				// Prevent diag_log limit
                             if ( count(toArray(_key)) > 1020 ) then {
                                 diag_log ("Prevent diag_log limit...");
-                                _key = format["CHILD:201:%1:%2:%3:%4:%5:%6:%7:%8:%9:%10:%11:%12:%13:%14:%15:%16:",_characterID,_playerPos,[],[],_medical,false,false,_kills,_headShots,_distanceFoot,_timeSince,_currentState,_killsH,_killsB,_currentModel,_humanity];                                                 
+                                _key = format["CHILD:201:%1:%2:%3:%4:%5:%6:%7:%8:%9:%10:%11:%12:%13:%14:%15:%16:%17:",_characterID,_playerPos,[],[],_medical,false,false,_kills,_headShots,_distanceFoot,_timeSince,_currentState,_killsH,_killsB,_currentModel,_humanity,_cashMoney];                                                 
                                 if ( count(_playerGear) > 1 ) then {
                                     diag_log format["CHILD:21:%1:0:%2:", _characterID, _playerGear select 0]; // weapons
                                     diag_log format["CHILD:21:%1:1:%2:", _characterID, _playerGear select 1]; // magazines
@@ -201,53 +202,10 @@ if (_characterID != "0") then {
                                 };
                             };
                             diag_log (_key);
-							
-// ------------ ZUPA - Single Currency - Sync Money & Bank ----------------				
-				_headShotsZupa =_character getVariable ["headShots",0];	
-				_isChanged = _character getVariable ["moneychanged",0];	
-				if( isNil "_headShotsZupa") then
-				{
-					_headShotsZupa = 0;
-				};				
-					if(isNil "_isChanged")then
-					{
-						_character setVariable ["moneychanged",0,true];	
-					};
-						if(_isChanged  > 0)then
-						{
-							_key = format["CHILD:999:UPDATE `character_data` SET `HeadshotsZ` = %1 WHERE `CharacterID` = %2:[0]:",_headShotsZupa,_characterID];			
-								diag_log (_key);	
-							_character setVariable ["moneychanged",0,true];			
-						};
-			
-				// Update Bank if changed ( reduces db calls )
-				_bankingchanged =_character getVariable ["bankchanged",0];
-				
-				if( isNil "_bankingchanged") then
-				{
-					_character setVariable ["bankchanged",0,true];
-					_bankingchanged = 0;
-				};	
-				
-					if( _bankingchanged > 0)then
-					{
-						_banking =_character getVariable ["bank",0];
-				
-						if( isNil "_banking") then
-						{
-							_banking = 0;
-						}else
-							{				
-								_character setVariable ["bankchanged",0,true];
-								_playerid = getPlayerUID _character;
-								_key = format["CHILD:999:UPDATE `player_data` SET `PlayerMorality`= %1 WHERE `PlayerUID`= '%2':[0]:",_banking,_playerid];
-									diag_log (_key);		
-							};				
-					};
-// ------------ ZUPA - END ----------------					
 			};
 		};
 
+		// If player is in a vehicle, keep its position updated
 		if (vehicle _character != _character) then {
 			//[vehicle _character, "position"] call server_updateObject;
 			if (!(vehicle _character in needUpdate_objects)) then {
