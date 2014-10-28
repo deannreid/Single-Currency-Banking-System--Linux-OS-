@@ -54,7 +54,6 @@ dayz_tameDogs = false;				// Default: false
 dayz_sellDistance_vehicle = 10;		// Default: 10
 dayz_sellDistance_boat = 30;		// Default: 30
 dayz_sellDistance_air = 40;			// Default: 40
-DZE_ConfigTrader = true;
 
 //Player Variables
 DZE_R3F_WEIGHT = false;				// Default: true
