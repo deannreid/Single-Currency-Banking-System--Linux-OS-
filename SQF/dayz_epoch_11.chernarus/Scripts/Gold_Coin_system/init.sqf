@@ -74,30 +74,30 @@ BankDialogDepositAmount = {
 };
 
 GivePlayerAmount = {
-	private ["_amount","_target","_wealth"];
-	
-	_amount = parseNumber (_this select 0);
-	_target = cursorTarget;
-	_wealth = player getVariable["cashMoney",0];
-	_twealth = _target getVariable["cashMoney",0];
-	_isMan = _target in playableUnits;
-
-	if (_amount < 1 or _amount > _wealth) exitWith {
-		cutText ["You can not give more than you currently have.", "PLAIN DOWN"];
+    private ["_amount","_target","_wealth"];
+    _amount = parseNumber (_this select 0);
+    _target = cursorTarget;
+    _wealth = player getVariable["cashMoney",0];
+    _twealth = _target getVariable["cashMoney",0];
+    _isMan = _target isKindOf "Man";
+    if (_amount < 1 or _amount > _wealth) exitWith {
+        cutText ["You can not give more than you currently have.", "PLAIN DOWN"];
     };
+    if (!_isMan) exitWith {
+        cutText ["You are not facing anyone.", "PLAIN DOWN"];
+    };
+    if (_wealth == _twealth) exitWith {
+        cutText ["FAILED : Both Targets have same amount of money.", "PLAIN DOWN"];
+    };
+    PVDZE_account_Doublecheck = [player];
+    publicVariableServer "PVDZE_account_Doublecheck";
+    player setVariable["cashMoney",_wealth - _amount, true];
+    _target setVariable["cashMoney",_twealth + _amount, true];
+    
+    PVDZE_plr_Save = [player,(magazines player),true,true] ;
+    publicVariableServer "PVDZE_plr_Save";
+    PVDZE_plr_Save = [_target,(magazines _target),true,true] ;
+    publicVariableServer "PVDZE_plr_Save";
 
-	if (!_isMan) exitWith {
-		cutText ["You can only give money to a player", "PLAIN DOWN"];
-	};
-
-	player setVariable["cashMoney",_wealth - _amount, true];
-
-	_target setVariable["cashMoney",_twealth + _amount, true];
-
-	PVDZE_plr_Save = [player,(magazines player),true,true] ;
-	publicVariableServer "PVDZE_plr_Save";
-	PVDZE_plr_Save = [_target,(magazines _target),true,true] ;
-	publicVariableServer "PVDZE_plr_Save";
-
-	cutText [format["You gave %1 %2.", _amount, CurrencyName], "PLAIN DOWN"];
+    cutText [format["You gave %1 %2.", _amount, CurrencyName], "PLAIN DOWN"];
 };
