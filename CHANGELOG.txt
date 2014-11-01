@@ -1,3 +1,4 @@
 Beta 0.1 Update
 ====================
 - Fixed Dupe Bug
+- Fixed BE Variable Kick
