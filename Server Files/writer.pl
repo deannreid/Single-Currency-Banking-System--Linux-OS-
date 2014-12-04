@@ -39,6 +39,7 @@ my %FN_IPC  = (
     101 => \&h_load_player,
 	102 => \&h_load_character,
     103 => \&h_log_login,
+   #     104 => \&h_admin_login,
     201 => \&h_player_update,
     202 => \&h_player_death,
     204 => \&h_player_disconnect,
@@ -54,6 +55,10 @@ my %FN_IPC  = (
     396 => \&h_object_reset_damage,
     397 => \&h_object_uid_reset_damage,
     398 => \&h_trade_object,
+    ##WARNING SECURITY RISK## 
+    #Release as seperate writer.pl 
+    #   998 => \&h_custom_998,   #Incomplete 
+    #   999 => \&h_custom_999,   #Incomplete 
 );
 
 my $dbh   = connect_to_db();
@@ -681,6 +686,11 @@ sub h_log_login {
     return $res;
 }
 
+# 104 
+#sub h_admin_login {
+	
+#}
+
 # 201
 sub h_player_update {
     my $p = shift;
@@ -1285,3 +1295,6 @@ sub h_load_trader_details {
     
     undef %tids;
 }
+
+#sub h_custom_999 {};
+#sub h_custom_999 {};
